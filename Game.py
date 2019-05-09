@@ -7,7 +7,7 @@ class Game:
     def __init__(self):
         self.board = self.create_board()
         self.winner, self.counter = 0, 1
-        print(self.board)
+        #print(self.board)
         self.players = [2, 1]
 
     def create_board(self):
@@ -35,23 +35,9 @@ class Game:
         self.board[current_loc] = player
         return (self.board)
 
-    def q_player(self,player):
-        q_table = np.zeros([3**9, 9])
-
-        # Hyparameters
-        gamma = 0.9
-        alpha = 0.1  # learning rate
-
-        epsilon = 0.1
-        max_epsilon = 1.0
-        min_epsilon = 0.01
-        decay_rate = 0.01
-
-        all_epochs = []
-        all_penalities = []
-        penalities = 0
-
-        print(q_table)
+    def choosen_place(self, player,x,y):
+        self.board[2-y,x] = player
+        return (self.board)
 
 
     # Checks whether the player has three
@@ -128,8 +114,19 @@ class Game:
                     break
         return (self.winner)
 
+    def play_game_for_training(self, action, player):
+
+        self.board[action[0], action[1]] = player
+        if self.evaluate() != 0:
+            return self.board, 1,self.evaluate()
+        self.board = self.random_place(player+1)
+        if self.evaluate() != 0:
+            return self.board, -1,self.evaluate()
+
+        return self.board, 0,self.evaluate()
 
 # Driver Code
-game = Game()
+#game = Game()
 #print("Winner is: " + str(game.play_game()))
-game.q_player(1)
+#game.q_player(1)
+#game.play_game()
