@@ -16,17 +16,21 @@ class Game:
                           [0, 0, 0]]))
 
 
-    # Check for empty places on board
-    def possibilities(self):
+    # Check for empty places on state
+    @staticmethod
+    def game_possibilities(state):
         l = []
 
-        for i in range(len(self.board)):
-            for j in range(len(self.board)):
+        for i in range(len(state)):
+            for j in range(len(state)):
 
-                if self.board[i][j] == 0:
+                if state[i][j] == 0:
                     l.append((i, j))
         return (l)
 
+    # Check for empty places on this board
+    def possibilities(self):
+        return Game.game_possibilities(self.board)
 
     # Select a random place for the player
     def random_place(self, player):
@@ -89,7 +93,7 @@ class Game:
         self.winner = 0
 
         for player in [2, 1]:
-            if (self.row_win( player) or
+            if (self.row_win(player) or
                     self.col_win(player) or
                     self.diag_win(player)):
                 self.winner = player
@@ -115,18 +119,24 @@ class Game:
         return (self.winner)
 
     def play_game_for_training(self, action, player):
+        possibilities = self.possibilities()
+        possible = action in possibilities
+        # todo: assume -0.9 reward for incorrect action
+        if not possible:
+            return self.board, -0.9, self.evaluate()
 
         self.board[action[0], action[1]] = player
         if self.evaluate() != 0:
-            return self.board, 1,self.evaluate()
+            return self.board, 1, self.evaluate()
         self.board = self.random_place(player+1)
         if self.evaluate() != 0:
-            return self.board, -1,self.evaluate()
+            return self.board, -1, self.evaluate()
 
-        return self.board, 0,self.evaluate()
+        return self.board, self.evaluate_for_reward(), self.evaluate()
 
-# Driver Code
-#game = Game()
-#print("Winner is: " + str(game.play_game()))
-#game.q_player(1)
-#game.play_game()
+    # ranged for -1 to 1 exclusive, more than 0 is good
+    def evaluate_for_reward(self, state=None):
+        if state is None:
+            state = self.board
+        # TODO: maybe return heuristic score not 0, should help in learning, but its not necessary
+        return 0
