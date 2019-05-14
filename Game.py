@@ -105,14 +105,17 @@ class Game:
 
     def play_game_for_comparison(self,players):
         while self.winner == 0:
-            sleep(1)
+            #sleep(1)
             for player in zip(players,self.players):
-                #self.board = self.random_place(player)
                 action = player[0].decide_for_action(tuple(tuple(x) for x in self.board))
+                possibilities = self.possibilities()
+                possible = action in possibilities
+                if not possible:
+                    action = possibilities[0]
                 self.board[action[0], action[1]] = player[1]
                 print("Board after " + str(self.counter) + " move")
                 print(self.board)
-                sleep(1)
+                #sleep(1)
                 self.counter += 1
                 self.winner = self.evaluate()
                 if self.winner != 0:
@@ -123,12 +126,12 @@ class Game:
     # Main function to start the game
     def play_game(self):
         while self.winner == 0:
-            sleep(1)
+            #sleep(1)
             for player in self.players:
                 self.board = self.random_place(player)
                 print("Board after " + str(self.counter) + " move")
                 print(self.board)
-                sleep(1)
+                #sleep(1)
                 self.counter += 1
                 self.winner = self.evaluate()
                 if self.winner != 0:
@@ -140,16 +143,16 @@ class Game:
         possible = action in possibilities
         # todo: assume -0.9 reward for incorrect action
         if not possible:
-            return self.board, -0.9, self.evaluate()
+            action = possibilities[0]
 
         self.board[action[0], action[1]] = player
         if self.evaluate() != 0:
-            return self.board, 1, self.evaluate()
+            return self.board, 1 if possible else -0.9, self.evaluate()
         self.board = self.random_place(player+1)
         if self.evaluate() != 0:
-            return self.board, -1, self.evaluate()
+            return self.board, -1 if possible else -0.9, self.evaluate()
 
-        return self.board, self.evaluate_for_reward(), self.evaluate()
+        return self.board, self.evaluate_for_reward() if possible else -0.9, self.evaluate()
 
     # ranged for -1 to 1 exclusive, more than 0 is good
     def evaluate_for_reward(self, state=None):

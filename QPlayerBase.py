@@ -4,9 +4,9 @@ import random
 
 
 class QPlayerBase:
-    def __init__(self):
+    def __init__(self, num_epochs):
         # Hyparameters
-        self.num_episodes = 30000
+        self.num_episodes = num_epochs
         self.learning_rate = 0.1
         self.discount_rate = 0.99
 

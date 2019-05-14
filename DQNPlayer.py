@@ -73,8 +73,8 @@ tf_type = tf.float32
 
 
 class DQNPlayer(QPlayerBase):
-    def __init__(self):
-        super(DQNPlayer, self).__init__()
+    def __init__(self, num_epochs=10000):
+        super(DQNPlayer, self).__init__(num_epochs)
         # params
         self.loss_type = 'huber'  # 'huber' or 'mse'
         self.ox_board_size = 3  # board size
