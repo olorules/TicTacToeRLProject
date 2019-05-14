@@ -103,6 +103,23 @@ class Game:
         return self.winner
 
 
+    def play_game_for_comparison(self,players):
+        while self.winner == 0:
+            sleep(1)
+            for player in zip(players,self.players):
+                #self.board = self.random_place(player)
+                action = player[0].decide_for_action(tuple(tuple(x) for x in self.board))
+                self.board[action[0], action[1]] = player[1]
+                print("Board after " + str(self.counter) + " move")
+                print(self.board)
+                sleep(1)
+                self.counter += 1
+                self.winner = self.evaluate()
+                if self.winner != 0:
+                    break
+        return (self.winner)
+    
+    
     # Main function to start the game
     def play_game(self):
         while self.winner == 0:
@@ -140,3 +157,4 @@ class Game:
             state = self.board
         # TODO: maybe return heuristic score not 0, should help in learning, but its not necessary
         return 0
+
