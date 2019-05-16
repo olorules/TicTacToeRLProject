@@ -6,6 +6,7 @@ import random
 class QPlayerBase:
     def __init__(self, num_epochs):
         # Hyparameters
+        self.num_episode_already_trained = 0
         self.num_episodes = num_epochs
         self.learning_rate = 0.1
         self.discount_rate = 0.99
@@ -26,6 +27,21 @@ class QPlayerBase:
     # override this, should return best action based on state
     def decide_for_action(self, state):
         raise NotImplementedError()
+
+    # override this, should return best action based on state
+    def decide_for_action_explore(self, state):
+        exploration_rate_threshold = random.uniform(0, 1)
+        if exploration_rate_threshold > self.exploration_rate:
+            action = self.decide_for_action(state)
+        else:
+            action = self.select_random(state)
+
+        self.exploration_rate = self.min_exploration_rate + \
+                                (self.max_exploration_rate - self.min_exploration_rate) * np.exp(
+            -self.exploration_decay_rate * self.num_episode_already_trained)
+        self.num_episode_already_trained += 1
+
+        return action
 
     # override this, should update learn logic and params
     def update_params(self, state, action, reward, new_state, done):
@@ -53,7 +69,7 @@ class QPlayerBase:
                 else:
                     action = self.select_random(state)
 
-                new_state, reward, done = game.play_game_for_training(action, player_id)
+                new_state, reward, done = game.play_move_for_training(action, player_id)
                 new_state = tuple(tuple(x) for x in new_state)
 
                 if train:

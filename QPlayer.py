@@ -31,3 +31,14 @@ class QPlayer(QPlayerBase):
                                             self.learning_rate * (
                                                     reward + self.discount_rate * np.max(self.q_table[new_state]))
 
+
+class RandomPlayer(QPlayerBase):
+    def __init__(self, num_epochs=10000):
+        super(RandomPlayer, self).__init__(num_epochs)
+
+    def decide_for_action(self, state):
+        action = self.select_random(state)
+        return action
+
+    def update_params(self, state, action, reward, new_state, done):
+        pass

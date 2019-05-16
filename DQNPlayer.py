@@ -237,11 +237,15 @@ class DQNPlayer(QPlayerBase):
         #       -1 - tie
         win_history = np.array([m[4] for m in self.memory if m[4] != 0])
         if len(win_history):
-            self.tf_summary_writer.add_scalar('WonP1', (win_history == 1).mean(), self.tf_summary_global_step)
+            wonP1 = (win_history == 1).mean()
+            wonP2 = (win_history == 2).mean()
+            self.tf_summary_writer.add_scalar('WonP1', wonP1, self.tf_summary_global_step)
             self.tf_summary_writer.add_scalar('Tie', (win_history == -1).mean(), self.tf_summary_global_step)
-            self.tf_summary_writer.add_scalar('WonP2', (win_history == 2).mean(), self.tf_summary_global_step)
+            self.tf_summary_writer.add_scalar('WonP2', wonP2, self.tf_summary_global_step)
+            self.tf_summary_writer.add_scalar('WonP1-WonP2', wonP1-wonP2, self.tf_summary_global_step)
 
         if len(self.memory) > self.memory_batch_size*2:
             self.replay(self.memory_batch_size, self.memory[:self.memory_replay_size])
         elif len(self.memory) > 8:
             self.replay(8, self.memory)
+
