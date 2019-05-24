@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from time import sleep
+from time import sleep, time
 
 class Game:
 
@@ -162,18 +162,24 @@ class Game:
         return 0
 
     @staticmethod
-    def play_multigame(num_episodes, players, player_markers, trains=(False, False), alternate=False):
+    def play_multigame(num_episodes, players, player_markers, trains=(False, False), alternate=False, loose_on_invalid=False):
         rewards_all_episodes = []
         winner_all_episodes = []
+        invalid_moves_for_p_running = [0, 0]
         ids = [(0, 1), (1, 0)]
+        begin = time()
+        log = []
         for episode in range(num_episodes):
             game = Game()
             state = game.board
             state = tuple(tuple(x) for x in state)
             rewards_current_episode = 0
+            rewards_for_p = [0, 0]
+            invalid_moves_for_p = [0, 0]
 
             done = 0
             num_moves = 0
+            num_moves_for_p = [0, 0]
             while done == 0:
                 for id, other_id in ids:
                     player_ai, player_marker, train = players[id], player_markers[id], trains[id]
@@ -184,24 +190,50 @@ class Game:
                     else:
                         action = player_ai.decide_for_action(state)
 
-                    new_state, reward, done = game.play_move_for_training(action, player_marker)
+                    valid_move = action in game.possibilities()
+                    new_state, reward, done = game.play_move_for_training(action, player_marker, loose_on_invalid)
                     new_state = tuple(tuple(x) for x in new_state)
-                    num_moves += 1
 
                     ##TODO: remove block for bad action and add tie after 10 moves
                     if train:
                         player_ai.update_params(state, action, reward, new_state, done)
-                    if other_train:
-                        other_ai.update_params(state, action, -reward, new_state, done)
+                    # if other_train:
+                    #     other_ai.update_params(state, action, -reward, new_state, done)
 
                     state = new_state
                     rewards_current_episode += reward
+                    rewards_for_p[id] += reward
+                    num_moves_for_p[id] += 1
+                    num_moves += 1
+                    invalid_moves_for_p[id] += 0 if valid_move else 1
 
                     if done != 0:
                         winner_all_episodes.append(done)
                         break
 
+            invalid_moves_for_p_running[0] = invalid_moves_for_p_running[0] + invalid_moves_for_p[0]
+            invalid_moves_for_p_running[1] = invalid_moves_for_p_running[1] + invalid_moves_for_p[1]
             rewards_all_episodes.append(rewards_current_episode)
+            r = np.array(winner_all_episodes[-1000:])
+            log.append({
+                'avg_reward': rewards_current_episode / num_moves,
+                'avg_reward_p1': rewards_for_p[0] / num_moves_for_p[0],
+                'avg_reward_p2': rewards_for_p[1] / num_moves_for_p[1],
+                'winner': done,
+                'winner_p1': 1 if done == 1 else 0,
+                'winner_p2': 1 if done == 2 else 0,
+                'winner_p1_running': (r == 1).mean(),
+                'winner_p2_running': (r == 2).mean(),
+                'tie': 1 if done == -1 else 0,
+                'tie_running': (r == -1).mean(),
+                'invalid_p1': invalid_moves_for_p[0],
+                'invalid_p2': invalid_moves_for_p[1],
+                'invalid_p1_running': invalid_moves_for_p_running[0],
+                'invalid_p2_running': invalid_moves_for_p_running[1],
+                'episode': episode,
+                'start_player': ids[0][0],
+                'epsilon': players[0].exploration_rate
+            })
 
             # TODO: next lines assume done values:
             #        0 - round not finished
@@ -210,26 +242,30 @@ class Game:
             #       -1 - tie
             if episode % 100 == 0:
                 r = np.array(winner_all_episodes)
-                print('{} Explore {:.3f}; {:.3f}: Won:{:.3f} Tie: {:.3f} Lost:{:.3f}'.format(episode, players[0].exploration_rate, players[1].exploration_rate, (r == 1).mean(), (r == -1).mean(), (r == 2).mean()))
+                print('{} Explore {:.3f}; {:.3f}: Won:{:.3f} Tie: {:.3f} Lost:{:.3f} TIME: {}'.format(episode, players[0].exploration_rate, players[1].exploration_rate, (r == 1).mean(), (r == -1).mean(), (r == 2).mean(), time() - begin))
 
             if alternate:
                 ids = ids[::-1]
 
-        rewards_per_thousand_episodes = np.split(np.array(rewards_all_episodes), num_episodes / 1000)
-        count = 1000
+        #rewards_per_thousand_episodes = np.split(np.array(rewards_all_episodes), num_episodes / 1000)
+        #count = 1000
 
-        print("********Average reward per thousand episodes********\n")
-        for r in rewards_per_thousand_episodes:
-            print('{} : Avg sum of reward:{:.3f}'.format(count, r.mean()))
-            count += 1000
+        #print("********Average reward per thousand episodes********\n")
+        #for r in rewards_per_thousand_episodes:
+            #print('{} : Avg sum of reward:{:.3f}'.format(count, r.mean()))
+            #count += 1000
 
-    def play_move_for_training(self, action, player_marker):
+        r = np.array(winner_all_episodes)
+        return log, {'WonP1': (r == 1).mean(), 'Tie': (r == -1).mean(), 'WonP2': (r == 2).mean(), 'time': (time()-begin) / num_episodes}
+
+    def play_move_for_training(self, action, player_marker, loose_on_invalid):
         possibilities = self.possibilities()
         possible = action in possibilities
         # todo: assume -0.9 reward for incorrect action
         if not possible:
             action = possibilities[0]
-            return self.board, -1.5, 1 if player_marker == 2 else 2
+            if loose_on_invalid:
+                return self.board, -3, 1 if player_marker == 2 else 2
 
         self.board[action[0], action[1]] = player_marker
         if self.evaluate() != 0:

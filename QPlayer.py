@@ -4,8 +4,8 @@ import numpy as np
 
 
 class QPlayer(QPlayerBase):
-    def __init__(self, num_epochs=10000):
-        super(QPlayer, self).__init__(num_epochs)
+    def __init__(self, lr=0.1):
+        super(QPlayer, self).__init__(lr)
         self.q_table = {}
 
     def decide_for_action(self, state):

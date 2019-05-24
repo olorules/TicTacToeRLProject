@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import tensorflow as tf
 import tensorboardX
+from Game import Game
 
 
 def huber_loss(labels, predictions, weights=1.0, delta=1.0, scope=None):
@@ -73,10 +74,10 @@ tf_type = tf.float32
 
 
 class DQNPlayer(QPlayerBase):
-    def __init__(self, num_epochs=10000):
-        super(DQNPlayer, self).__init__(num_epochs)
+    def __init__(self, lr=0.1, loss='huber'):
+        super(DQNPlayer, self).__init__(lr)
         # params
-        self.loss_type = 'huber'  # 'huber' or 'mse'
+        self.loss_type = loss  # 'huber' or 'mse'
         self.ox_board_size = 3  # board size
         self.update_pred_network_every_n = 5  # how often to copy QNN params to target network (<1 - every train step, >=1 - every n train steps)
         self.memory_batch_size = 128  # how many samples to learn on in one train step
@@ -139,7 +140,7 @@ class DQNPlayer(QPlayerBase):
             self.update_pred_network_vars()
 
         # one optimizer step
-        self.fit(states, target_f_batch, 1e-4 * self.learning_rate * batch_size)
+        self.fit(states, target_f_batch, self.learning_rate * batch_size)
 
     # copy NN weights from QNN to target network
     def update_pred_network_vars(self):
@@ -221,7 +222,10 @@ class DQNPlayer(QPlayerBase):
         return pred
 
     def decide_for_action(self, state):
-        action = np.argmax(self.predict(self.encode_state(state).reshape(-1, self.state_size)))
+        posible_actions = [self.encode_action(a) for a in Game.game_possibilities(state)]
+        regret = np.zeros((self.action_size,))
+        regret[posible_actions] = 1000
+        action = np.argmax(self.predict(self.encode_state(state).reshape(-1, self.state_size)) + regret )
         action = self.decode_action(action)
         return action
 
